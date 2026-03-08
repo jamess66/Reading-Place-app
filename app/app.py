@@ -32,10 +32,21 @@ class AppHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path in ("/health", "/healthz"):
+            self._serve_health()
+            return
         if parsed.path.startswith("/tiles/cycle/"):
             self._serve_cycle_tile(parsed.path)
             return
         super().do_GET()
+
+    def _serve_health(self) -> None:
+        body = b"ok"
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _serve_cycle_tile(self, path: str) -> None:
         # Expected path format: /tiles/cycle/{z}/{x}/{y}.png
