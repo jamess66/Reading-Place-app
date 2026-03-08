@@ -5,8 +5,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-HOST = "127.0.0.1"
-PORT = 7860
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "7860"))
 WEB_DIR = Path(__file__).parent / "web"
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 TILE_PROVIDER = "auto"  # auto | thunderforest | cyclosm
