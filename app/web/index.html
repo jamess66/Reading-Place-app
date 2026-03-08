@@ -503,9 +503,10 @@
         <div class="top-ui">
           <div class="search-wrap">
             <span>🔍</span>
-            <input v-model="searchQuery" placeholder="Search study place..." />
+            <input v-model="searchQuery" :placeholder="t('search_placeholder')" />
           </div>
           <button class="icon-btn" @click="refreshOccupancy">⟳</button>
+          <button class="icon-btn" @click="toggleLanguage">{{ locale.toUpperCase() }}</button>
         </div>
 
         <div class="chip-bar">
@@ -516,16 +517,16 @@
             :class="{ active: activePlaceTypes.includes(type.id) }"
             @click="togglePlaceType(type.id)"
           >
-            {{ type.label }}
+            {{ placeTypeLabel(type.id) }}
           </button>
         </div>
 
         <div class="legend">
-          <h4>Study Density</h4>
-          <div><span class="dot" style="background:#2ecc71"></span>Green - Available</div>
-          <div><span class="dot" style="background:#f1c40f"></span>Yellow - Moderate</div>
-          <div><span class="dot" style="background:#e67e22"></span>Orange - Busy</div>
-          <div><span class="dot" style="background:#e74c3c"></span>Red - Full</div>
+          <h4>{{ t('study_density') }}</h4>
+          <div><span class="dot" style="background:#2ecc71"></span>{{ t('density_green') }}</div>
+          <div><span class="dot" style="background:#f1c40f"></span>{{ t('density_yellow') }}</div>
+          <div><span class="dot" style="background:#e67e22"></span>{{ t('density_orange') }}</div>
+          <div><span class="dot" style="background:#e74c3c"></span>{{ t('density_red') }}</div>
         </div>
 
         <div class="fabs">
@@ -537,30 +538,30 @@
         <div class="sheet" v-if="selectedLocation">
           <div class="pill"></div>
           <h3>{{ selectedLocation.name }}</h3>
-          <div class="sub">{{ occupancyPercent(selectedLocation) }}% occupied ({{ statusMeta(selectedLocation).label }})</div>
+          <div class="sub">{{ occupancyPercent(selectedLocation) }}% {{ t('occupied') }} ({{ statusLabel(densityStatus(selectedLocation)) }})</div>
           <div class="meta">
-            {{ availableSeats(selectedLocation) }} seats available<br>
-            Open until {{ selectedLocation.openUntil }}
+            {{ availableSeats(selectedLocation) }} {{ t('seats_available') }}<br>
+            {{ t('open_until') }} {{ selectedLocation.openUntil }}
           </div>
-          <button class="primary" @click="openDetailScreen">View zones</button>
+          <button class="primary" @click="openDetailScreen">{{ t('view_zones') }}</button>
         </div>
       </div>
 
       <div class="detail" v-if="currentScreen === 'detail'">
         <div class="nav">
           <button class="nav-btn" @click="goBackToCampus">←</button>
-          <div class="nav-title">{{ detailLocation ? detailLocation.name : 'Location' }}</div>
+          <div class="nav-title">{{ detailLocation ? detailLocation.name : t('location') }}</div>
           <button class="nav-btn" @click="detailBookmarked = !detailBookmarked">{{ detailBookmarked ? '★' : '☆' }}</button>
         </div>
 
         <div class="summary" v-if="detailLocation">
           <h3>{{ detailLocation.name }}</h3>
-          <div class="pct">{{ occupancyPercent(detailLocation) }}% occupied</div>
-          <div class="meta">{{ availableSeats(detailLocation) }} seats available<br>Open until {{ detailLocation.openUntil }}</div>
+          <div class="pct">{{ occupancyPercent(detailLocation) }}% {{ t('occupied') }}</div>
+          <div class="meta">{{ availableSeats(detailLocation) }} {{ t('seats_available') }}<br>{{ t('open_until') }} {{ detailLocation.openUntil }}</div>
           <div class="features">
-            <div class="feature">📶 WiFi</div>
-            <div class="feature">🔌 Power outlets</div>
-            <div class="feature">🤫 Quiet zone</div>
+            <div class="feature">📶 {{ t('wifi') }}</div>
+            <div class="feature">🔌 {{ t('power_outlets') }}</div>
+            <div class="feature">🤫 {{ t('quiet_zone') }}</div>
           </div>
         </div>
 
@@ -570,13 +571,13 @@
             <div class="layout-blob" style="left:6%; top:8%; width:32%; height:22%;"></div>
             <div class="layout-blob" style="left:62%; top:10%; width:30%; height:18%;"></div>
             <div class="layout-blob" style="left:62%; top:70%; width:30%; height:20%;"></div>
-            <template v-if="detailLocation && detailLocation.kind === 'park'">
+            <template v-if="detailLocation && detailLocation.placeType === 'park'">
               <div class="corridor" style="left:6%; top:44%; width:88%; height:12%; border-radius:999px;"></div>
               <div class="corridor" style="left:47%; top:10%; width:8%; height:78%; border-radius:999px;"></div>
               <div class="wall" style="left:8%; top:10%; width:14%; height:12%;"></div>
-              <div class="way-arrow" style="left:34%; top:46%;">→ Trail</div>
-              <div class="poi" style="left:6%; top:8%;">🚶 Path</div>
-              <div class="poi" style="left:74%; top:86%;">💧 Lake</div>
+              <div class="way-arrow" style="left:34%; top:46%;">→ {{ t('trail') }}</div>
+              <div class="poi" style="left:6%; top:8%;">🚶 {{ t('path') }}</div>
+              <div class="poi" style="left:74%; top:86%;">💧 {{ t('lake') }}</div>
             </template>
             <template v-else>
               <div class="corridor" style="left:4%; top:40%; width:92%; height:16%;"></div>
@@ -584,8 +585,8 @@
               <div class="wall" style="left:6%; top:10%; width:16%; height:22%;"></div>
               <div class="wall" style="left:78%; top:72%; width:14%; height:18%;"></div>
               <!-- <div class="way-arrow" style="left:28%; top:43%;">→ East Wing</div> -->
-              <div class="poi" style="left:5%; top:6%;">🚪 Entrance</div>
-              <div class="poi" style="left:78%; top:86%;">⬆️ Stairs</div>
+              <div class="poi" style="left:5%; top:6%;">🚪 {{ t('entrance') }}</div>
+              <div class="poi" style="left:78%; top:86%;">⬆️ {{ t('stairs') }}</div>
             </template>
             <div class="scale-bar">
               20 m
@@ -600,25 +601,25 @@
               @click="selectZone(zone.id)"
             >
               {{ zone.name }}<br>{{ statusIcon(zone.status) }} {{ statusLabel(zone.status) }}
-              <div class="zone-type">{{ zone.type }}</div>
+              <div class="zone-type">{{ zoneTypeLabel(zone.type) }}</div>
             </button>
           </div>
           <div class="zone-card" v-if="activeZone">
             <h4>{{ activeZone.name }}</h4>
-            <div>Zone type: {{ activeZone.type }}</div>
-            <div>Available seats: {{ activeZone.availableSeats }}</div>
-            <div>Noise level: {{ activeZone.noiseLevel }}</div>
-            <div>Power outlets: {{ activeZone.power ? 'Yes' : 'No' }}</div>
-            <button class="go">Navigate here</button>
+            <div>{{ t('zone_type') }}: {{ zoneTypeLabel(activeZone.type) }}</div>
+            <div>{{ t('available_seats') }}: {{ activeZone.availableSeats }}</div>
+            <div>{{ t('noise_level') }}: {{ noiseLabel(activeZone.noiseLevel) }}</div>
+            <div>{{ t('power_outlets') }}: {{ activeZone.power ? t('yes') : t('no') }}</div>
+            <button class="go">{{ t('navigate_here') }}</button>
           </div>
         </div>
 
         <div class="legend-inline">
-          <h4 style="margin:0 0 6px 0;">Zone Density</h4>
-          <div><span class="dot" style="background:#2ecc71"></span>Green - Available</div>
-          <div><span class="dot" style="background:#f1c40f"></span>Yellow - Moderate</div>
-          <div><span class="dot" style="background:#e67e22"></span>Orange - Busy</div>
-          <div><span class="dot" style="background:#e74c3c"></span>Red - Full</div>
+          <h4 style="margin:0 0 6px 0;">{{ t('zone_density') }}</h4>
+          <div><span class="dot" style="background:#2ecc71"></span>{{ t('density_green') }}</div>
+          <div><span class="dot" style="background:#f1c40f"></span>{{ t('density_yellow') }}</div>
+          <div><span class="dot" style="background:#e67e22"></span>{{ t('density_orange') }}</div>
+          <div><span class="dot" style="background:#e74c3c"></span>{{ t('density_red') }}</div>
         </div>
 
         <div class="zone-list">
@@ -629,7 +630,7 @@
             :class="{ active: activeZone && activeZone.id === zone.id }"
             @click="selectZone(zone.id)"
           >
-            {{ zone.name }} ({{ zone.type }}) - {{ statusIcon(zone.status) }} {{ statusLabel(zone.status) }}
+            {{ zone.name }} ({{ zoneTypeLabel(zone.type) }}) - {{ statusIcon(zone.status) }} {{ statusLabel(zone.status) }}
           </button>
         </div>
       </div>
@@ -656,21 +657,114 @@
           detailZones: [],
           activeZoneId: "",
           detailBookmarked: false,
+          locale: "th",
           searchQuery: "",
           popularOnly: false,
           activePlaceTypes: ["cafe", "library", "park"],
           selectedId: "",
           placeTypes: [
-            { id: "cafe", label: "Cafe" },
-            { id: "library", label: "Library" },
-            { id: "park", label: "Park" }
+            { id: "cafe" },
+            { id: "library" },
+            { id: "park" }
           ],
           spaces: [],
           statusStyles: {
-            available: { icon: "🟢", label: "Available", fill: "#2ecc71", border: "#27ae60" },
-            moderate: { icon: "🟡", label: "Moderate", fill: "#f1c40f", border: "#d4ac0d" },
-            busy: { icon: "🟠", label: "Busy", fill: "#e67e22", border: "#ca6f1e" },
-            full: { icon: "🔴", label: "Full", fill: "#e74c3c", border: "#c0392b" }
+            available: { icon: "🟢", fill: "#2ecc71", border: "#27ae60" },
+            moderate: { icon: "🟡", fill: "#f1c40f", border: "#d4ac0d" },
+            busy: { icon: "🟠", fill: "#e67e22", border: "#ca6f1e" },
+            full: { icon: "🔴", fill: "#e74c3c", border: "#c0392b" }
+          },
+          i18n: {
+            th: {
+              search_placeholder: "ค้นหาสถานที่อ่านหนังสือ...",
+              study_density: "ความหนาแน่นพื้นที่อ่าน",
+              zone_density: "ความหนาแน่นโซน",
+              density_green: "เขียว - ว่าง",
+              density_yellow: "เหลือง - ปานกลาง",
+              density_orange: "ส้ม - หนาแน่น",
+              density_red: "แดง - เต็ม",
+              occupied: "ถูกใช้งาน",
+              seats_available: "ที่นั่งว่าง",
+              open_until: "เปิดถึง",
+              view_zones: "ดูโซน",
+              location: "สถานที่",
+              wifi: "ไวไฟ",
+              power_outlets: "ปลั๊กไฟ",
+              quiet_zone: "โซนเงียบ",
+              trail: "ทางเดิน",
+              path: "ทาง",
+              lake: "ทะเลสาบ",
+              entrance: "ทางเข้า",
+              stairs: "บันได",
+              zone_type: "ประเภทโซน",
+              available_seats: "ที่นั่งว่าง",
+              noise_level: "ระดับเสียง",
+              navigate_here: "นำทางไปที่นี่",
+              yes: "มี",
+              no: "ไม่มี",
+              type_cafe: "คาเฟ่",
+              type_library: "ห้องสมุด",
+              type_park: "สวน",
+              status_available: "ว่าง",
+              status_moderate: "ปานกลาง",
+              status_busy: "หนาแน่น",
+              status_full: "เต็ม",
+              stats_visible: "สถานที่ที่แสดง",
+              stats_available: "ว่างตอนนี้",
+              stats_free_seats: "ที่นั่งว่างรวม",
+              zone_type_table: "โซนโต๊ะ",
+              zone_type_seat: "โซนที่นั่ง",
+              noise_low: "ต่ำ",
+              noise_quiet: "เงียบ",
+              noise_medium: "ปานกลาง",
+              noise_active: "คึกคัก",
+              noise_very_quiet: "เงียบมาก"
+            },
+            en: {
+              search_placeholder: "Search study place...",
+              study_density: "Study Density",
+              zone_density: "Zone Density",
+              density_green: "Green - Available",
+              density_yellow: "Yellow - Moderate",
+              density_orange: "Orange - Busy",
+              density_red: "Red - Full",
+              occupied: "occupied",
+              seats_available: "seats available",
+              open_until: "Open until",
+              view_zones: "View zones",
+              location: "Location",
+              wifi: "WiFi",
+              power_outlets: "Power outlets",
+              quiet_zone: "Quiet zone",
+              trail: "Trail",
+              path: "Path",
+              lake: "Lake",
+              entrance: "Entrance",
+              stairs: "Stairs",
+              zone_type: "Zone type",
+              available_seats: "Available seats",
+              noise_level: "Noise level",
+              navigate_here: "Navigate here",
+              yes: "Yes",
+              no: "No",
+              type_cafe: "Cafe",
+              type_library: "Library",
+              type_park: "Park",
+              status_available: "Available",
+              status_moderate: "Moderate",
+              status_busy: "Busy",
+              status_full: "Full",
+              stats_visible: "Visible spaces",
+              stats_available: "Available now",
+              stats_free_seats: "Free seats",
+              zone_type_table: "Table zone",
+              zone_type_seat: "Seat zone",
+              noise_low: "Low",
+              noise_quiet: "Quiet",
+              noise_medium: "Medium",
+              noise_active: "Active",
+              noise_very_quiet: "Very quiet"
+            }
           }
         };
       },
@@ -701,7 +795,7 @@
           const visible = this.filteredLocations.length;
           const available = this.filteredLocations.filter((space) => this.densityStatus(space) === "available").length;
           const freeSeats = this.filteredLocations.reduce((acc, space) => acc + this.availableSeats(space), 0);
-          return `Visible spaces: ${visible} | Available now: ${available} | Free seats: ${freeSeats}`;
+          return `${this.t("stats_visible")}: ${visible} | ${this.t("stats_available")}: ${available} | ${this.t("stats_free_seats")}: ${freeSeats}`;
         }
       },
       watch: {
@@ -718,6 +812,10 @@
           if (this.selectedLocation && this.mapReady) {
             this.map.flyTo({ center: this.selectedLocation.center, zoom: 17, duration: 600 });
           }
+        },
+        locale() {
+          this.refreshAllPlacesLayer();
+          this.updateSelectedMarker();
         }
       },
       async mounted() {
@@ -739,7 +837,9 @@
               const occ = Math.floor(Math.random() * cap);
               return {
                 id: f.properties.id.toString(),
-                name: f.properties.name,
+                name: f.properties.name || f.properties.name_en || "Place",
+                nameTh: f.properties.name || f.properties.name_th || f.properties.name_en || "สถานที่",
+                nameEn: f.properties.name_en || f.properties.name || "Place",
                 osmQuery: f.properties.name,
                 kind: f.properties.amenity,
                 placeType: this.inferPlaceType(f.properties),
@@ -777,7 +877,9 @@
             features: this.allPlaces.features.map(f => {
               const space = this.spaces.find(s => s.id === f.properties.id.toString());
               const density = space ? this.densityStatus(space) : "available";
-              const mapLabel = (f.properties && f.properties.name) ? f.properties.name : "Study Place";
+              const mapLabel = this.locale === "th"
+                ? (space?.nameTh || f.properties?.name || f.properties?.name_en || "สถานที่")
+                : (space?.nameEn || f.properties?.name_en || f.properties?.name || "Study Place");
               const placeType = space?.placeType || this.inferPlaceType(f.properties);
               return { ...f, properties: { ...f.properties, density, mapLabel, placeType } };
             })
@@ -888,7 +990,7 @@
           return this.statusStyles[this.densityStatus(space)];
         },
         statusLabel(status) {
-          return this.statusStyles[status]?.label || "Available";
+          return this.t(`status_${status}`);
         },
         statusIcon(status) {
           return this.statusStyles[status]?.icon || "🟢";
@@ -899,6 +1001,30 @@
         zoneStyle(zone) {
           const meta = this.statusStyles[zone.status] || this.statusStyles.available;
           return `left:${zone.x}%; top:${zone.y}%; width:${zone.w}%; height:${zone.h}%; --shape:${zone.shape || "4% 6%, 96% 6%, 96% 94%, 4% 94%"}; background:${meta.fill}66; border-color:${meta.border};`;
+        },
+        t(key) {
+          return this.i18n[this.locale]?.[key] || this.i18n.en[key] || key;
+        },
+        toggleLanguage() {
+          this.locale = this.locale === "th" ? "en" : "th";
+        },
+        placeTypeLabel(typeId) {
+          return this.t(`type_${typeId}`);
+        },
+        zoneTypeLabel(type) {
+          if (type === "Table zone") return this.t("zone_type_table");
+          if (type === "Seat zone") return this.t("zone_type_seat");
+          return type;
+        },
+        noiseLabel(value) {
+          const map = {
+            "Low": "noise_low",
+            "Quiet": "noise_quiet",
+            "Medium": "noise_medium",
+            "Active": "noise_active",
+            "Very quiet": "noise_very_quiet"
+          };
+          return this.t(map[value] || "noise_medium");
         },
         buildDetailZones(location) {
           const isPark = location.placeType === "park";
