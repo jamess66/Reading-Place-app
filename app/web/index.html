@@ -1,0 +1,1307 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Reading Space Map</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    :root {
+      --green: #2ecc71;
+      --yellow: #f1c40f;
+      --orange: #e67e22;
+      --red: #e74c3c;
+      --ink: #111827;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(160deg, #eef1f4, #e3e7ec);
+      font-family: "SF Pro Text", "Segoe UI", sans-serif;
+      color: var(--ink);
+    }
+
+    .phone {
+      width: 390px;
+      height: 844px;
+      border-radius: 34px;
+      overflow: hidden;
+      position: relative;
+      background: #f7f7f7;
+      box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
+    }
+
+    .map {
+      position: absolute;
+      inset: 0;
+    }
+
+    #map-canvas {
+      position: absolute;
+      inset: 0;
+    }
+
+    .top-ui, .chip-bar, .legend, .fabs, .sheet {
+      position: absolute;
+    }
+
+    .campus-container {
+      height: 100%;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+
+    .top-ui {
+      top: 16px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      z-index: 30;
+    }
+
+    .search-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 18px;
+      height: 46px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      padding: 0 12px;
+    }
+
+    .search-wrap input {
+      border: 0;
+      outline: 0;
+      flex: 1;
+      font-size: 14px;
+      background: transparent;
+      color: #334155;
+    }
+
+    .icon-btn {
+      width: 46px;
+      height: 46px;
+      border: 0;
+      border-radius: 23px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .chip-bar {
+      z-index: 30;
+      top: 70px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .chip {
+      border: 0;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 11px;
+      white-space: nowrap;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+    }
+
+    .chip.active {
+      background: #111827;
+      color: #fff;
+    }
+
+    .legend {
+      left: 12px;
+      bottom: 12px;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 14px;
+      padding: 10px;
+      min-width: 142px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+      font-size: 11px;
+    }
+
+    .legend h4 { margin: 0 0 6px 0; font-size: 11px; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; margin-right: 5px; }
+
+    .fabs {
+      right: 12px;
+      bottom: 12px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+
+    .fab {
+      width: 48px;
+      height: 48px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .sheet {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 14px 16px 18px;
+      box-shadow: 0 -10px 34px rgba(17, 24, 39, 0.12);
+      z-index: 40;
+    }
+
+    .pill {
+      width: 42px;
+      height: 4px;
+      border-radius: 99px;
+      margin: 0 auto 10px;
+      background: #e5e7eb;
+    }
+
+    .sheet h3 { margin: 0; font-size: 18px; }
+    .sub { margin: 4px 0 10px; color: #4b5563; font-size: 14px; }
+    .meta { font-size: 13px; color: #374151; line-height: 1.45; margin-bottom: 12px; }
+
+    .primary {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      height: 44px;
+      background: #111827;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .stats {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .detail {
+      position: absolute;
+      inset: 0;
+      background: #f5f6f8;
+      overflow-y: auto;
+      padding: 12px;
+      z-index: 60;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .nav-title {
+      flex: 1;
+      margin: 0 8px;
+      font-size: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nav-btn {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .summary {
+      background: #fff;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      margin-bottom: 10px;
+    }
+
+    .summary h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .summary .pct {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #475569;
+    }
+
+    .features {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .feature {
+      background: #f3f4f6;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 11px;
+      color: #374151;
+    }
+
+    .zone-wrap {
+      background: #fff;
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+      margin-bottom: 10px;
+    }
+
+    .zone-canvas {
+      position: relative;
+      height: 240px;
+      border-radius: 14px;
+      background:
+        radial-gradient(circle at 30% 20%, #f6f7f9 0, #eef1f4 45%, #e7ebf0 100%);
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .indoor-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(148, 163, 184, 0.18) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.18) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .wall {
+      position: absolute;
+      background: rgba(148, 163, 184, 0.2);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .layout-blob {
+      position: absolute;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.52);
+      border: 1px solid rgba(203, 213, 225, 0.85);
+      pointer-events: none;
+    }
+
+    .way-arrow {
+      position: absolute;
+      font-size: 12px;
+      color: #475569;
+      background: rgba(255, 255, 255, 0.88);
+      border-radius: 999px;
+      padding: 1px 6px;
+      border: 1px solid #d1d5db;
+      pointer-events: none;
+    }
+
+    .corridor {
+      position: absolute;
+      background: rgba(203, 213, 225, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.65);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .scale-bar {
+      position: absolute;
+      left: 8px;
+      bottom: 8px;
+      z-index: 3;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 4px 7px;
+      font-size: 10px;
+      color: #334155;
+      pointer-events: none;
+    }
+
+    .scale-line {
+      width: 44px;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #111827 50%, #9ca3af 50%);
+      margin-top: 3px;
+    }
+
+    .poi {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-size: 10px;
+      color: #334155;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
+      pointer-events: none;
+    }
+
+    .zone {
+      position: absolute;
+      border: 2px solid;
+      border-radius: 12px;
+      padding: 6px;
+      font-size: 11px;
+      line-height: 1.2;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .zone:hover { transform: translateY(-1px); }
+    .zone.active { box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.24); }
+
+    .zone-card {
+      margin-top: 8px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .zone-card h4 {
+      margin: 0 0 6px 0;
+      font-size: 14px;
+    }
+
+    .zone-card .go {
+      margin-top: 8px;
+      width: 100%;
+      height: 36px;
+      border: 0;
+      border-radius: 10px;
+      background: #111827;
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .legend-inline {
+      background: #fff;
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .zone-list {
+      background: #fff;
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      max-height: 196px;
+      overflow-y: auto;
+    }
+
+    .zone-item {
+      border: 0;
+      width: 100%;
+      text-align: left;
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 9px 10px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .zone-item.active {
+      background: #e5e7eb;
+    }
+
+    .zone-type {
+      display: inline-block;
+      margin-top: 3px;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #374151;
+    }
+
+    .selected-pin-marker {
+      position: relative;
+      width: 30px;
+      height: 30px;
+      background: url("/assets/location-pin.svg") center/contain no-repeat;
+      transform: translate(-50%, -100%);
+      pointer-events: none;
+    }
+
+    .selected-pin-label {
+      position: absolute;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #111827;
+      white-space: nowrap;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+    }
+
+    @media (max-width: 430px) {
+      body { display: block; }
+      .phone { width: 100vw; height: 100vh; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="phone">
+      <div v-show="currentScreen === 'campus'" class="campus-container">
+        <div class="map">
+          <div id="map-canvas"></div>
+        </div>
+
+        <div class="top-ui">
+          <div class="search-wrap">
+            <span>🔍</span>
+            <input v-model="searchQuery" placeholder="Search study place..." />
+          </div>
+          <button class="icon-btn" @click="refreshOccupancy">⟳</button>
+        </div>
+
+        <div class="chip-bar">
+          <button
+            v-for="type in placeTypes"
+            :key="type.id"
+            class="chip"
+            :class="{ active: activePlaceTypes.includes(type.id) }"
+            @click="togglePlaceType(type.id)"
+          >
+            {{ type.label }}
+          </button>
+        </div>
+
+        <div class="legend">
+          <h4>Study Density</h4>
+          <div><span class="dot" style="background:#2ecc71"></span>Green - Available</div>
+          <div><span class="dot" style="background:#f1c40f"></span>Yellow - Moderate</div>
+          <div><span class="dot" style="background:#e67e22"></span>Orange - Busy</div>
+          <div><span class="dot" style="background:#e74c3c"></span>Red - Full</div>
+        </div>
+
+        <div class="fabs">
+          <button class="fab" @click="focusBestAvailable">📍</button>
+          <button class="fab" @click="clearSearch">⚗️</button>
+          <button class="fab" @click="togglePopular">⭐</button>
+        </div>
+
+        <div class="sheet" v-if="selectedLocation">
+          <div class="pill"></div>
+          <h3>{{ selectedLocation.name }}</h3>
+          <div class="sub">{{ occupancyPercent(selectedLocation) }}% occupied ({{ statusMeta(selectedLocation).label }})</div>
+          <div class="meta">
+            {{ availableSeats(selectedLocation) }} seats available<br>
+            Open until {{ selectedLocation.openUntil }}
+          </div>
+          <button class="primary" @click="openDetailScreen">View zones</button>
+        </div>
+      </div>
+
+      <div class="detail" v-if="currentScreen === 'detail'">
+        <div class="nav">
+          <button class="nav-btn" @click="goBackToCampus">←</button>
+          <div class="nav-title">{{ detailLocation ? detailLocation.name : 'Location' }}</div>
+          <button class="nav-btn" @click="detailBookmarked = !detailBookmarked">{{ detailBookmarked ? '★' : '☆' }}</button>
+        </div>
+
+        <div class="summary" v-if="detailLocation">
+          <h3>{{ detailLocation.name }}</h3>
+          <div class="pct">{{ occupancyPercent(detailLocation) }}% occupied</div>
+          <div class="meta">{{ availableSeats(detailLocation) }} seats available<br>Open until {{ detailLocation.openUntil }}</div>
+          <div class="features">
+            <div class="feature">📶 WiFi</div>
+            <div class="feature">🔌 Power outlets</div>
+            <div class="feature">🤫 Quiet zone</div>
+          </div>
+        </div>
+
+        <div class="zone-wrap">
+          <div class="zone-canvas">
+            <div class="indoor-grid"></div>
+            <div class="layout-blob" style="left:6%; top:8%; width:32%; height:22%;"></div>
+            <div class="layout-blob" style="left:62%; top:10%; width:30%; height:18%;"></div>
+            <div class="layout-blob" style="left:62%; top:70%; width:30%; height:20%;"></div>
+            <template v-if="detailLocation && detailLocation.kind === 'park'">
+              <div class="corridor" style="left:6%; top:44%; width:88%; height:12%; border-radius:999px;"></div>
+              <div class="corridor" style="left:47%; top:10%; width:8%; height:78%; border-radius:999px;"></div>
+              <div class="wall" style="left:8%; top:10%; width:14%; height:12%;"></div>
+              <div class="way-arrow" style="left:34%; top:46%;">→ Trail</div>
+              <div class="poi" style="left:6%; top:8%;">🚶 Path</div>
+              <div class="poi" style="left:74%; top:86%;">💧 Lake</div>
+            </template>
+            <template v-else>
+              <div class="corridor" style="left:4%; top:40%; width:92%; height:16%;"></div>
+              <div class="corridor" style="left:44%; top:6%; width:12%; height:88%;"></div>
+              <div class="wall" style="left:6%; top:10%; width:16%; height:22%;"></div>
+              <div class="wall" style="left:78%; top:72%; width:14%; height:18%;"></div>
+              <!-- <div class="way-arrow" style="left:28%; top:43%;">→ East Wing</div> -->
+              <div class="poi" style="left:5%; top:6%;">🚪 Entrance</div>
+              <div class="poi" style="left:78%; top:86%;">⬆️ Stairs</div>
+            </template>
+            <div class="scale-bar">
+              20 m
+              <div class="scale-line"></div>
+            </div>
+            <button
+              v-for="zone in detailZones"
+              :key="zone.id"
+              class="zone"
+              :class="{ active: activeZone && activeZone.id === zone.id }"
+              :style="zoneStyle(zone)"
+              @click="selectZone(zone.id)"
+            >
+              {{ zone.name }}<br>{{ statusIcon(zone.status) }} {{ statusLabel(zone.status) }}
+              <div class="zone-type">{{ zone.type }}</div>
+            </button>
+          </div>
+          <div class="zone-card" v-if="activeZone">
+            <h4>{{ activeZone.name }}</h4>
+            <div>Zone type: {{ activeZone.type }}</div>
+            <div>Available seats: {{ activeZone.availableSeats }}</div>
+            <div>Noise level: {{ activeZone.noiseLevel }}</div>
+            <div>Power outlets: {{ activeZone.power ? 'Yes' : 'No' }}</div>
+            <button class="go">Navigate here</button>
+          </div>
+        </div>
+
+        <div class="legend-inline">
+          <h4 style="margin:0 0 6px 0;">Zone Density</h4>
+          <div><span class="dot" style="background:#2ecc71"></span>Green - Available</div>
+          <div><span class="dot" style="background:#f1c40f"></span>Yellow - Moderate</div>
+          <div><span class="dot" style="background:#e67e22"></span>Orange - Busy</div>
+          <div><span class="dot" style="background:#e74c3c"></span>Red - Full</div>
+        </div>
+
+        <div class="zone-list">
+          <button
+            v-for="zone in detailZones"
+            :key="zone.id + '-list'"
+            class="zone-item"
+            :class="{ active: activeZone && activeZone.id === zone.id }"
+            @click="selectZone(zone.id)"
+          >
+            {{ zone.name }} ({{ zone.type }}) - {{ statusIcon(zone.status) }} {{ statusLabel(zone.status) }}
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="stats" v-if="currentScreen === 'campus'">{{ statsText }}</div>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          map: null,
+          mapReady: false,
+          selectedMarker: null,
+          bookSpot: null,
+          allPlaces: null,
+          popupActive: null,
+          currentScreen: "campus",
+          detailLocationId: "",
+          detailZones: [],
+          activeZoneId: "",
+          detailBookmarked: false,
+          searchQuery: "",
+          popularOnly: false,
+          activePlaceTypes: ["cafe", "library", "park"],
+          selectedId: "",
+          placeTypes: [
+            { id: "cafe", label: "Cafe" },
+            { id: "library", label: "Library" },
+            { id: "park", label: "Park" }
+          ],
+          spaces: [],
+          statusStyles: {
+            available: { icon: "🟢", label: "Available", fill: "#2ecc71", border: "#27ae60" },
+            moderate: { icon: "🟡", label: "Moderate", fill: "#f1c40f", border: "#d4ac0d" },
+            busy: { icon: "🟠", label: "Busy", fill: "#e67e22", border: "#ca6f1e" },
+            full: { icon: "🔴", label: "Full", fill: "#e74c3c", border: "#c0392b" }
+          }
+        };
+      },
+      computed: {
+        filteredLocations() {
+          const term = this.searchQuery.trim().toLowerCase();
+          return this.spaces.filter((space) => {
+            const matchesSearch =
+              !term ||
+              space.name.toLowerCase().includes(term) ||
+              (space.kind || "").toLowerCase().includes(term) ||
+              (space.placeType || "").includes(term);
+            const matchesPopular = !this.popularOnly || space.popular;
+            const matchesType = this.activePlaceTypes.includes(space.placeType || "cafe");
+            return matchesSearch && matchesPopular && matchesType;
+          });
+        },
+        selectedLocation() {
+          return this.filteredLocations.find((loc) => loc.id === this.selectedId) || null;
+        },
+        detailLocation() {
+          return this.spaces.find((loc) => loc.id === this.detailLocationId) || null;
+        },
+        activeZone() {
+          return this.detailZones.find((zone) => zone.id === this.activeZoneId) || null;
+        },
+        statsText() {
+          const visible = this.filteredLocations.length;
+          const available = this.filteredLocations.filter((space) => this.densityStatus(space) === "available").length;
+          const freeSeats = this.filteredLocations.reduce((acc, space) => acc + this.availableSeats(space), 0);
+          return `Visible spaces: ${visible} | Available now: ${available} | Free seats: ${freeSeats}`;
+        }
+      },
+      watch: {
+        filteredLocations() {
+          if (!this.filteredLocations.find((loc) => loc.id === this.selectedId)) {
+            this.selectedId = "";
+          }
+          this.updateMapData();
+          this.applyMapFilters();
+        },
+        selectedId() {
+          this.updateSelectedLayer();
+          this.updateSelectedMarker();
+          if (this.selectedLocation && this.mapReady) {
+            this.map.flyTo({ center: this.selectedLocation.center, zoom: 17, duration: 600 });
+          }
+        }
+      },
+      async mounted() {
+        await this.fetchLibrariesAndCafes();
+        await this.loadBookSpot();
+        this.initMap();
+      },
+      methods: {
+        async fetchLibrariesAndCafes() {
+          try {
+            const rs = await fetch("/places.json");
+            const data = await rs.json();
+            
+            this.allPlaces = data;
+
+            // Ingest places.json completely into the spaces array for standard UI binding
+            this.spaces = data.features.map(f => {
+              const cap = Math.floor(Math.random() * 80) + 20;
+              const occ = Math.floor(Math.random() * cap);
+              return {
+                id: f.properties.id.toString(),
+                name: f.properties.name,
+                osmQuery: f.properties.name,
+                kind: f.properties.amenity,
+                placeType: this.inferPlaceType(f.properties),
+                openUntil: "22:00",
+                capacity: cap, 
+                occupied: occ,
+                popular: Math.random() > 0.8,
+                center: this.polygonCenter(f.geometry.coordinates),
+                polygon: f.geometry.coordinates
+              };
+            });
+
+            this.refreshAllPlacesLayer();
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        copyPolygon(id) {
+          if (!this.allPlaces) return;
+          const originalFeature = this.allPlaces.features.find(f => f.properties.id.toString() === id.toString());
+          if (!originalFeature) return;
+
+          const coordsJson = JSON.stringify(originalFeature.geometry.coordinates);
+          navigator.clipboard.writeText(coordsJson).then(() => {
+            alert("Copied Polygon to clipboard!");
+          }).catch(err => {
+            console.error("Failed to copy coordinates:", err);
+            alert("Failed to copy. See console.");
+          });
+        },
+        updateAllPlacesLayer() {
+          if (!this.allPlaces) return null;
+          return {
+            ...this.allPlaces,
+            features: this.allPlaces.features.map(f => {
+              const space = this.spaces.find(s => s.id === f.properties.id.toString());
+              const density = space ? this.densityStatus(space) : "available";
+              const mapLabel = (f.properties && f.properties.name) ? f.properties.name : "Study Place";
+              const placeType = space?.placeType || this.inferPlaceType(f.properties);
+              return { ...f, properties: { ...f.properties, density, mapLabel, placeType } };
+            })
+          };
+        },
+        refreshAllPlacesLayer() {
+          if (!this.mapReady) return;
+          const source = this.map.getSource("all-places");
+          if (!source) return;
+          const enriched = this.updateAllPlacesLayer();
+          if (!enriched) return;
+          source.setData(enriched);
+        },
+        async loadBookSpot() {
+          try {
+            const viewbox = "98.945,18.810,98.960,18.799";
+            const params = new URLSearchParams({
+              q: "สำนักหอสมุด มหาวิทยาลัยเชียงใหม่",
+              format: "jsonv2",
+              limit: "1",
+              bounded: "1",
+              viewbox,
+              countrycodes: "th"
+            });
+            const url = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+            const response = await fetch(url);
+            if (!response.ok) return;
+            const rows = await response.json();
+            if (!rows.length) return;
+            const row = rows[0];
+            this.bookSpot = {
+              name: row.display_name || "Library",
+              center: [parseFloat(row.lon), parseFloat(row.lat)]
+            };
+          } catch (_) {
+            // Keep fallback below.
+          }
+
+          if (!this.bookSpot) {
+            const fallback = this.spaces.find((s) => s.kind === "library") || this.spaces[0];
+            if (fallback) {
+              this.bookSpot = {
+                name: fallback.name,
+                center: fallback.center
+              };
+            }
+          }
+        },
+        polygonCenter(polygonCoords) {
+          const ring = polygonCoords[0] || [];
+          if (!ring.length) return [98.9524, 18.8053];
+          let minLng = ring[0][0];
+          let maxLng = ring[0][0];
+          let minLat = ring[0][1];
+          let maxLat = ring[0][1];
+          for (const [lng, lat] of ring) {
+            minLng = Math.min(minLng, lng);
+            maxLng = Math.max(maxLng, lng);
+            minLat = Math.min(minLat, lat);
+            maxLat = Math.max(maxLat, lat);
+          }
+          return [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+        },
+        occupancyPercent(space) {
+          return Math.round((space.occupied / space.capacity) * 100);
+        },
+        inferPlaceType(properties) {
+          const amenity = (properties?.amenity || "").toLowerCase();
+          const leisure = (properties?.leisure || "").toLowerCase();
+          const name = (properties?.name || "").toLowerCase();
+
+          if (
+            amenity === "library" ||
+            name.includes("library") ||
+            name.includes("หอสมุด")
+          ) {
+            return "library";
+          }
+          if (
+            amenity === "cafe" ||
+            amenity === "coffee_shop" ||
+            amenity === "restaurant"
+          ) {
+            return "cafe";
+          }
+          if (
+            amenity === "park" ||
+            leisure === "park" ||
+            leisure === "garden" ||
+            name.includes("park") ||
+            name.includes("สวน")
+          ) {
+            return "park";
+          }
+          return "cafe";
+        },
+        availableSeats(space) {
+          return Math.max(0, space.capacity - space.occupied);
+        },
+        densityStatus(space) {
+          const pct = this.occupancyPercent(space);
+          if (pct >= 80) return "full";
+          if (pct >= 65) return "busy";
+          if (pct >= 40) return "moderate";
+          return "available";
+        },
+        statusMeta(space) {
+          return this.statusStyles[this.densityStatus(space)];
+        },
+        statusLabel(status) {
+          return this.statusStyles[status]?.label || "Available";
+        },
+        statusIcon(status) {
+          return this.statusStyles[status]?.icon || "🟢";
+        },
+        shortLabel(name) {
+          return name.replace("Study ", "").replace("Faculty ", "").split(" ").slice(0, 3).join(" ");
+        },
+        zoneStyle(zone) {
+          const meta = this.statusStyles[zone.status] || this.statusStyles.available;
+          return `left:${zone.x}%; top:${zone.y}%; width:${zone.w}%; height:${zone.h}%; --shape:${zone.shape || "4% 6%, 96% 6%, 96% 94%, 4% 94%"}; background:${meta.fill}66; border-color:${meta.border};`;
+        },
+        buildDetailZones(location) {
+          const isPark = location.placeType === "park";
+          if (isPark) {
+            return [
+              { id: "park_table_1", name: "Picnic Tables", type: "Table zone", status: "available", availableSeats: 16, noiseLevel: "Low", power: false, x: 7, y: 10, w: 41, h: 34, shape: "7% 20%, 26% 4%, 78% 6%, 94% 24%, 92% 80%, 76% 95%, 20% 92%, 4% 76%" },
+              { id: "park_seat_1", name: "Lake Side Seats", type: "Seat zone", status: "moderate", availableSeats: 9, noiseLevel: "Quiet", power: false, x: 52, y: 12, w: 39, h: 30, shape: "9% 10%, 90% 8%, 96% 50%, 85% 92%, 16% 94%, 4% 52%" },
+              { id: "park_table_2", name: "Garden Tables", type: "Table zone", status: "busy", availableSeats: 4, noiseLevel: "Medium", power: true, x: 11, y: 51, w: 38, h: 34, shape: "6% 14%, 72% 6%, 94% 24%, 88% 86%, 60% 95%, 10% 84%" },
+              { id: "park_seat_2", name: "Tree Bench Row", type: "Seat zone", status: "available", availableSeats: 13, noiseLevel: "Very quiet", power: false, x: 53, y: 52, w: 36, h: 33, shape: "12% 10%, 86% 14%, 96% 48%, 84% 90%, 18% 92%, 4% 50%" }
+            ];
+          }
+
+          return [
+            { id: "table_zone_a", name: "Main Tables A", type: "Table zone", status: "busy", availableSeats: 6, noiseLevel: "Medium", power: true, x: 3, y: 17, w: 40, h: 22, shape: "5% 12%, 92% 8%, 96% 44%, 82% 92%, 14% 96%, 3% 48%" },
+            { id: "seat_zone_a", name: "Quiet Seats", type: "Seat zone", status: "moderate", availableSeats: 11, noiseLevel: "Quiet", power: true, x: 57, y: 9, w: 40, h: 30, shape: "8% 10%, 90% 12%, 96% 52%, 82% 92%, 14% 90%, 4% 44%" },
+            { id: "table_zone_b", name: "Group Tables", type: "Table zone", status: "full", availableSeats: 2, noiseLevel: "Active", power: true, x: 5, y: 57, w: 38, h: 30, shape: "8% 8%, 86% 6%, 94% 38%, 90% 90%, 28% 96%, 4% 66%" },
+            { id: "seat_zone_b", name: "Window Seats", type: "Seat zone", status: "available", availableSeats: 14, noiseLevel: "Quiet", power: false, x: 45, y: 67, w: 25, h: 20, shape: "10% 6%, 90% 10%, 96% 52%, 82% 94%, 18% 90%, 4% 48%" },
+            { id: "seat_zone_c", name: "Sofa Seats", type: "Seat zone", status: "available", availableSeats: 10, noiseLevel: "Low", power: false, x: 72, y: 57, w: 21, h: 30, shape: "14% 8%, 88% 14%, 96% 56%, 78% 94%, 24% 88%, 4% 48%" }
+          ];
+        },
+        openDetailScreen() {
+          if (!this.selectedLocation) return;
+          this.detailLocationId = this.selectedLocation.id;
+          this.detailZones = this.buildDetailZones(this.selectedLocation);
+          this.activeZoneId = this.detailZones[0]?.id || "";
+          this.detailBookmarked = false;
+          this.currentScreen = "detail";
+        },
+        goBackToCampus() {
+          this.currentScreen = "campus";
+          requestAnimationFrame(() => {
+            if (this.map) this.map.resize();
+          });
+        },
+        selectZone(zoneId) {
+          this.activeZoneId = zoneId;
+        },
+        selectLocation(id) {
+          this.selectedId = id;
+        },
+        togglePlaceType(typeId) {
+          const exists = this.activePlaceTypes.includes(typeId);
+          if (exists) {
+            if (this.activePlaceTypes.length === 1) return;
+            this.activePlaceTypes = this.activePlaceTypes.filter((id) => id !== typeId);
+            return;
+          }
+          this.activePlaceTypes = [...this.activePlaceTypes, typeId];
+        },
+        togglePopular() {
+          this.popularOnly = !this.popularOnly;
+        },
+        clearSearch() {
+          this.searchQuery = "";
+        },
+        focusBestAvailable() {
+          if (!this.filteredLocations.length) return;
+          const best = [...this.filteredLocations].sort((a, b) => this.occupancyPercent(a) - this.occupancyPercent(b))[0];
+          this.selectedId = best.id;
+          if (this.map) {
+            this.map.flyTo({ center: best.center, zoom: 17, duration: 700 });
+          }
+        },
+        refreshOccupancy() {
+          this.spaces = this.spaces.map((space) => {
+            const swing = Math.floor(Math.random() * 25) - 12;
+            const next = Math.min(space.capacity, Math.max(0, space.occupied + swing));
+            return { ...space, occupied: next };
+          });
+          this.updateMapData();
+          this.refreshAllPlacesLayer();
+        },
+        buildGeoJSON() {
+          const features = [];
+          for (const space of this.filteredLocations) {
+            const status = this.densityStatus(space);
+            const icon = this.statusStyles[status].icon;
+            const occupancy = this.occupancyPercent(space);
+            const short = this.shortLabel(space.name);
+
+            features.push({
+              type: "Feature",
+              properties: {
+                id: space.id,
+                name: space.name,
+                status,
+                occupancy,
+                label: `${short}\n${icon} ${occupancy}%`
+              },
+              geometry: {
+                type: "Polygon",
+                coordinates: space.polygon
+              }
+            });
+
+            features.push({
+              type: "Feature",
+              properties: {
+                id: `${space.id}-label`,
+                parent_id: space.id,
+                status,
+                label: `${short}\n${icon} ${occupancy}%`
+              },
+              geometry: {
+                type: "Point",
+                coordinates: space.center
+              }
+            });
+          }
+
+          return { type: "FeatureCollection", features };
+        },
+        buildBookGeoJSON() {
+          if (!this.bookSpot) return { type: "FeatureCollection", features: [] };
+          return {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                properties: {
+                  id: "book-spot",
+                  label: "📚 Library Spot",
+                  name: this.bookSpot.name
+                },
+                geometry: {
+                  type: "Point",
+                  coordinates: this.bookSpot.center
+                }
+              }
+            ]
+          };
+        },
+        updateMapData() {
+          if (!this.mapReady) return;
+          const source = this.map.getSource("study-spaces");
+          if (!source) return;
+          source.setData(this.buildGeoJSON());
+          this.updateBookLayer();
+          this.updateSelectedLayer();
+        },
+        updateBookLayer() {
+          if (!this.mapReady) return;
+          const source = this.map.getSource("book-spot");
+          if (!source) return;
+          source.setData(this.buildBookGeoJSON());
+        },
+        updateSelectedLayer() {
+          if (!this.mapReady || !this.map.getLayer("places-selected")) return;
+          this.map.setFilter("places-selected", ["all", ["==", ["geometry-type"], "Polygon"], ["==", ["get", "id"], this.selectedId || "__none__"]]);
+        },
+        applyMapFilters() {
+          if (!this.mapReady || !this.map) return;
+          const typeFilter = ["in", ["get", "placeType"], ["literal", this.activePlaceTypes]];
+          this.map.setFilter("places-fill", typeFilter);
+          this.map.setFilter("places-outline", typeFilter);
+          this.map.setFilter("places-icon", typeFilter);
+          this.map.setFilter("places-label", typeFilter);
+        },
+        updateSelectedMarker() {
+          if (!this.mapReady || !this.map) return;
+
+          if (this.selectedMarker) {
+            this.selectedMarker.remove();
+            this.selectedMarker = null;
+          }
+
+          const selected = this.spaces.find((s) => s.id === this.selectedId);
+          if (!selected) return;
+
+          const markerEl = document.createElement("div");
+          markerEl.className = "selected-pin-marker";
+
+          const labelEl = document.createElement("div");
+          labelEl.className = "selected-pin-label";
+          labelEl.textContent = selected.name;
+          markerEl.appendChild(labelEl);
+
+          this.selectedMarker = new maplibregl.Marker({ element: markerEl, anchor: "bottom" })
+            .setLngLat(selected.center)
+            .addTo(this.map);
+        },
+        initMap() {
+          const cmuBounds = [
+            [98.9448, 18.7906],
+            [98.9635, 18.8152]
+          ];
+
+          this.map = new maplibregl.Map({
+            container: "map-canvas",
+            style: {
+              version: 8,
+              sources: {
+                "cycle-tiles": {
+                  type: "raster",
+                  tiles: ["/tiles/cycle/{z}/{x}/{y}.png"],
+                  tileSize: 256,
+                  attribution: "© OpenStreetMap contributors, OpenCycleMap/Thunderforest"
+                }
+              },
+              layers: [
+                {
+                  id: "cycle-base",
+                  type: "raster",
+                  source: "cycle-tiles",
+                  minzoom: 0,
+                  maxzoom: 20
+                }
+              ]
+            },
+            center: [98.9524, 18.8053],
+            zoom: 16,
+            minZoom: 15,
+            maxZoom: 19,
+            maxBounds: cmuBounds,
+            renderWorldCopies: false,
+            attributionControl: false
+          });
+
+
+          this.map.fitBounds(cmuBounds, { padding: 24, duration: 0 });
+
+          this.map.on("load", () => {
+            this.map.addSource("study-spaces", {
+              type: "geojson",
+              data: this.buildGeoJSON()
+            });
+            this.map.addSource("book-spot", {
+              type: "geojson",
+              data: this.buildBookGeoJSON()
+            });
+            this.map.addSource("all-places", {
+              type: "geojson",
+              data: this.updateAllPlacesLayer() || { type: "FeatureCollection", features: [] }
+            });
+
+            this.map.addLayer({
+              id: "places-selected",
+              type: "line",
+              source: "all-places",
+              filter: ["all", ["==", ["geometry-type"], "Polygon"], ["==", ["get", "id"], "__none__"]],
+              paint: {
+                "line-color": "#111827",
+                "line-width": 4
+              }
+            });
+
+            this.map.addLayer({
+              id: "book-halo",
+              type: "circle",
+              source: "book-spot",
+              paint: {
+                "circle-color": "rgba(255, 255, 255, 0.9)",
+                "circle-radius": 18,
+                "circle-stroke-color": "#2563eb",
+                "circle-stroke-width": 3
+              }
+            });
+            this.map.addLayer({
+              id: "book-icon",
+              type: "symbol",
+              source: "book-spot",
+              layout: {
+                "text-field": "📚",
+                "text-size": 16,
+                "text-anchor": "center"
+              }
+            });
+            this.map.addLayer({
+              id: "book-label",
+              type: "symbol",
+              source: "book-spot",
+              layout: {
+                "text-field": ["get", "label"],
+                "text-size": 11,
+                "text-offset": [0, 2.2],
+                "text-anchor": "top"
+              },
+              paint: {
+                "text-color": "#1e3a8a",
+                "text-halo-color": "rgba(255,255,255,0.95)",
+                "text-halo-width": 2
+              }
+            });
+
+            this.map.addLayer({
+              id: "places-fill",
+              type: "fill",
+              source: "all-places",
+              paint: {
+                "fill-color": [
+                  "match", ["get", "density"],
+                  "available", "#2ecc71",
+                  "moderate",  "#f1c40f",
+                  "busy",      "#e67e22",
+                  "full",      "#e74c3c",
+                  "#95a5a6"
+                ],
+                "fill-opacity": [
+                  "match", ["get", "density"],
+                  "available", 0.15,
+                  "moderate",  0.22,
+                  "busy",      0.30,
+                  "full",      0.40,
+                  0.18
+                ]
+              }
+            });
+
+            this.map.addLayer({
+              id: "places-outline",
+              type: "line",
+              source: "all-places",
+              paint: {
+                "line-color": [
+                  "match", ["get", "density"],
+                  "available", "#27ae60",
+                  "moderate",  "#d4ac0d",
+                  "busy",      "#ca6f1e",
+                  "full",      "#c0392b",
+                  "#7f8c8d"
+                ],
+                "line-width": 2
+              }
+            });
+
+            this.map.addLayer({
+              id: "places-icon",
+              type: "symbol",
+              source: "all-places",
+              layout: {
+                "text-field": [
+                  "match", ["get", "amenity"],
+                  "cafe", "☕",
+                  "library", "📖",
+                  "📍"
+                ],
+                "text-size": 12,
+                "text-anchor": "center"
+              }
+            });
+
+            this.map.addLayer({
+              id: "places-label",
+              type: "symbol",
+              source: "all-places",
+              layout: {
+                "symbol-placement": "point",
+                "text-field": ["get", "mapLabel"],
+                "text-size": 11,
+                "text-offset": [0, 1.5],
+                "text-anchor": "center",
+                "text-allow-overlap": true,
+                "text-ignore-placement": true
+              },
+              paint: {
+                "text-color": "#1e3a8a",
+                "text-halo-color": "rgba(255,255,255,0.95)",
+                "text-halo-width": 2.2
+              }
+            });
+            this.map.on("click", (event) => {
+              const hits = this.map.queryRenderedFeatures(event.point, { layers: ["places-fill", "book-halo", "book-icon"] });
+              if (!hits.length) {
+                this.selectedId = "";
+              }
+            });
+            this.map.on("mouseenter", "book-halo", () => {
+              this.map.getCanvas().style.cursor = "pointer";
+            });
+            this.map.on("mouseleave", "book-halo", () => {
+              this.map.getCanvas().style.cursor = "";
+            });
+            this.map.on("mouseenter", "places-fill", () => {
+              this.map.getCanvas().style.cursor = "pointer";
+            });
+            this.map.on("mouseleave", "places-fill", () => {
+              this.map.getCanvas().style.cursor = "";
+            });
+
+            this.map.on("click", "places-fill", (event) => {
+              const feature = event.features && event.features[0];
+              if (!feature) return;
+              this.selectLocation(feature.properties.id.toString());
+            });
+
+            this.map.on("click", "book-halo", () => {
+              const library = this.filteredLocations.find((s) => s.kind === "library") || this.spaces.find((s) => s.kind === "library");
+              if (library) {
+                this.selectedId = library.id;
+                this.map.flyTo({ center: library.center, zoom: 17, duration: 600 });
+              }
+            });
+
+            this.mapReady = true;
+            this.updateMapData();
+            this.refreshAllPlacesLayer();
+            this.applyMapFilters();
+            this.updateSelectedMarker();
+            this.updateSelectedLayer();
+          });
+        }
+      }
+    }).mount("#app");
+  </script>
+</body>
+</html>
